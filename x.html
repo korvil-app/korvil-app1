@@ -50,7 +50,7 @@ a{color:#7dd3fc}
 <p><span class="badge">ÚNICA FUNÇÃO • SEM TOKEN</span></p>
 <p><b>Destino fixo no GitHub:</b> <a href="https://github.com/korvil-app/korvil-app1/tree/main" target="_blank">https://github.com/korvil-app/korvil-app1/tree/main</a><br>
 <b>Referência antiga:</b> bolt.new/~/sb1-mkqjfct6 • https://korvil-app-operating-j27q.bolt.host<br>
-<b>Regra:</b> Não muda visual, não muda funcionamento. Só corrige caminhos, links e nomes para o projeto novo funcionar igual ao antigo.</p>
+<b>Site novo publicado:</b> https://korvil-app.github.io/korvil-app1/ (após subir + ativar Pages)<br><b>Regra:</b> Não muda visual, não muda funcionamento. Só corrige caminhos, links e nomes para o projeto novo funcionar igual ao antigo.</p>
 
 <div class="card">
 <div id="drop" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="onDrop(event)">
@@ -74,6 +74,18 @@ a{color:#7dd3fc}
 
 <div class="card"><b>Arquivos detectados (<span id="count">0</span>) — ordem preservada</b><div id="fileList">Nenhum arquivo ainda. Anexe o ZIP do projeto para adiantar.</div></div>
 <div class="card"><b>Log / Análise</b><div id="log">Aguardando anexo...</div></div>
+
+<div class="card" id="finalCard" style="display:none">
+<h2>✅ Projeto Novo Gerado</h2>
+<p><b>GitHub novo:</b> <a href="https://github.com/korvil-app/korvil-app1/tree/main" target="_blank">https://github.com/korvil-app/korvil-app1/tree/main</a><br>
+<b>Site novo publicado (GitHub Pages):</b> <a id="pagesLink" href="https://korvil-app.github.io/korvil-app1/" target="_blank">https://korvil-app.github.io/korvil-app1/</a><br>
+<b>Projeto antigo edição:</b> bolt.new/~/sb1-mkqjfct6<br>
+<b>Projeto antigo publicado:</b> <a href="https://korvil-app-operating-j27q.bolt.host" target="_blank">https://korvil-app-operating-j27q.bolt.host</a><br>
+<b>Supabase mantido:</b> https://pltxhdpwjhnjgkfmneer.supabase.co<br>
+<b>Chave publishable mantida:</b> sb_publishable_Ev98L1E2NUKN0SIx6q2HbA_yHd8SlJh</p>
+<p><small>Para ativar o site publicado: no GitHub korvil-app/korvil-app1 → Settings → Pages → Source: Deploy from a branch → Branch: main / (root) → Save. Depois abra o link acima. Sem isso o GitHub não publica — o código já deixa todos os caminhos prontos para Pages.</small></p>
+<div class="row"><button class="btn3" onclick="window.open('https://korvil-app.github.io/korvil-app1/','_blank')">↗ Abrir Site Novo Publicado</button><button class="btn" onclick="window.open('https://github.com/korvil-app/korvil-app1/tree/main','_blank')">↗ Abrir GitHub Novo</button></div>
+</div>
 <div class="card"><b>Prévia real do projeto novo (index.html corrigido)</b><div id="previewInfo">Anexe e clique em Corrigir para ver a prévia aqui.</div><iframe id="preview" style="display:none"></iframe></div>
 </div>
 
@@ -96,7 +108,8 @@ function corrigirTexto(t){
     ['korvil-app/korvil-app1/korvil-app1','korvil-app/korvil-app1'],
   ];
   for(const [a,b] of mapa) x=x.split(a).join(b);
-  // Supabase antigo mantido exatamente
+  // Supabase antigo mantido exatamente: https://pltxhdpwjhnjgkfmneer.supabase.co + sb_publishable_Ev98L1E2NUKN0SIx6q2HbA_yHd8SlJh — não troca, não inventa
+  // GitHub Pages: caminhos absolutos /assets -> relativos, só quando for link interno do projeto, para funcionar em korvil-app.github.io/korvil-app1/
   // Não troca URL/chave, não inventa Supabase novo
   return x;
 }
@@ -167,7 +180,7 @@ async function corrigirEPreparar(){
   if(index&&index.text){
     const blob=new Blob([index.text],{type:'text/html'}); const url=URL.createObjectURL(blob);
     const fr=document.getElementById('preview'); fr.style.display='block'; fr.src=url;
-    document.getElementById('previewInfo').textContent='Prévia real: '+index.path+' — navegue dentro dela.';
+    document.getElementById('previewInfo').textContent='Prévia real: '+index.path+' — navegue, clique nos botões e confira igual ao antigo.'; document.getElementById('finalCard').style.display='block'; window.scrollTo({top:document.getElementById('finalCard').offsetTop, behavior:'smooth'});+' — navegue dentro dela.';
     log('👁 Prévia carregada: '+index.path);
   }
 }
