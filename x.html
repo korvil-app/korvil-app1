@@ -86,7 +86,12 @@ a{color:#7dd3fc}
 <p><small>Para ativar o site publicado: no GitHub korvil-app/korvil-app1 → Settings → Pages → Source: Deploy from a branch → Branch: main / (root) → Save. Depois abra o link acima. Sem isso o GitHub não publica — o código já deixa todos os caminhos prontos para Pages.</small></p>
 <div class="row"><button class="btn3" onclick="window.open('https://korvil-app.github.io/korvil-app1/','_blank')">↗ Abrir Site Novo Publicado</button><button class="btn" onclick="window.open('https://github.com/korvil-app/korvil-app1/tree/main','_blank')">↗ Abrir GitHub Novo</button></div>
 </div>
-<div class="card"><b>Prévia real do projeto novo (index.html corrigido)</b><div id="previewInfo">Anexe e clique em Corrigir para ver a prévia aqui.</div><iframe id="preview" style="display:none"></iframe></div>
+<div class="card"><b>Site novo publicado renderizado — real</b>
+<div id="previewInfo">Anexe e clique em Corrigir para ver o site inteiro renderizado aqui.</div>
+<div class="row"><button class="btn2" onclick="mostrarPrevia('local')">👁 Ver Prévia Local (arquivos corrigidos)</button><button class="btn" onclick="mostrarPrevia('pages')">🌐 Ver Site Publicado GitHub Pages</button></div>
+<iframe id="preview" style="display:none"></iframe>
+<div id="pagesFrameWrap" style="display:none"><iframe id="pagesFrame" src="https://korvil-app.github.io/korvil-app1/"></iframe><p><small>Se aparecer 404, é porque o ZIP corrigido ainda não foi subido + Pages ativado. A prévia local acima já mostra como vai ficar.</small></p></div>
+</div>
 </div>
 
 <script>
@@ -166,6 +171,54 @@ function analisar(){
   log('✅ Análise pronta. Destino: https://github.com/korvil-app/korvil-app1/tree/main');
 }
 
+
+let blobMap = {}; // path -> blob URL
+let entradaPath = '';
+function mimeDe(p){ if(p.endsWith('.html'))return 'text/html'; if(p.endsWith('.css'))return 'text/css'; if(p.endsWith('.js')||p.endsWith('.jsx')||p.endsWith('.ts'))return 'text/javascript'; if(p.endsWith('.json'))return 'application/json'; if(p.endsWith('.svg'))return 'image/svg+xml'; if(p.endsWith('.png'))return 'image/png'; if(p.endsWith('.jpg')||p.endsWith('.jpeg'))return 'image/jpeg'; if(p.endsWith('.webp'))return 'image/webp'; if(p.endsWith('.gif'))return 'image/gif'; if(p.endsWith('.ico'))return 'image/x-icon'; if(p.endsWith('.mp4'))return 'video/mp4'; if(p.endsWith('.woff2'))return 'font/woff2'; if(p.endsWith('.woff'))return 'font/woff'; if(p.endsWith('.ttf'))return 'font/ttf'; return 'application/octet-stream'; }
+function resolverRelativo(basePath, url){
+  if(!url||url.startsWith('http')||url.startsWith('data:')||url.startsWith('blob:')||url.startsWith('#')||url.startsWith('mailto:')||url.startsWith('tel:')) return null;
+  let limpo=url.split('?')[0].split('#')[0]; if(!limpo) return null;
+  const base=basePath.split('/').slice(0,-1).join('/');
+  let r = limpo.startsWith('/') ? limpo.slice(1) : (base? base+'/'+limpo: limpo);
+  // normaliza ./ ../ e /korvil-app1/ inicial (GitHub Pages)
+  r=r.replace(/^korvil-app1\//,'');
+  const parts=[]; r.split('/').forEach(p=>{ if(p==='..') parts.pop(); else if(p!=='.'&&p!=='') parts.push(p); });
+  return parts.join('/');
+}
+function reescreverRefs(conteudo, basePath){
+  let t=conteudo;
+  // src/href
+  t=t.replace(/(src|href)=["']([^"']+)["']/g,(m,attr,url)=>{ const r=resolverRelativo(basePath,url); if(r&&blobMap[r]){ const sufixo=url.includes('?')?'?'+url.split('?')[1].split('#')[0]:''; return attr+'="'+blobMap[r]+sufixo+'"'; } return m; });
+  // CSS url(...)
+  t=t.replace(/url\(["']?([^"')]+)["']?\)/g,(m,url)=>{ const r=resolverRelativo(basePath,url); if(r&&blobMap[r]) return 'url("'+blobMap[r]+'")'; return m; });
+  // JS fetch / import relativo entre aspas
+  t=t.replace(/(fetch\(|from\s+|import\s*\(?\s*)["'](\.[^"']+)["']/g,(m,pre,url)=>{ const r=resolverRelativo(basePath,url); if(r&&blobMap[r]) return pre+'"'+blobMap[r]+'"'; return m; });
+  return t;
+}
+async function montarPreviaReal(){
+  // 1) Cria blob URL para TODOS os arquivos (não só index) — assim CSS/JS/img carregam
+  for(const k in blobMap) URL.revokeObjectURL(blobMap[k]); blobMap={};
+  // Primeiro passo: blobs crus para binários, texto cru para textos (para resolver refs)
+  const crus={};
+  for(const a of corrigidos){ if(a.isBinary) crus[a.path]=a.blob; else crus[a.path]=new Blob([a.text],{type:mimeDe(a.path)}); }
+  for(const p in crus) blobMap[p]=URL.createObjectURL(crus[p]);
+  // 2) Reescreve textos apontando para blob URLs e recria blobs
+  for(const a of corrigidos){
+    if(!a.isBinary){
+      const novo=reescreverRefs(a.text, a.path);
+      URL.revokeObjectURL(blobMap[a.path]); blobMap[a.path]=URL.createObjectURL(new Blob([novo],{type:mimeDe(a.path)}));
+    }
+  }
+  // 3) Escolhe página inicial EXATA: index.html na raiz > index.html em qualquer pasta > primeiro .html
+  entradaPath = (corrigidos.find(a=>a.path==='index.html')||corrigidos.find(a=>/(^|\/)index\.html$/.test(a.path))||corrigidos.find(a=>a.path.endsWith('.html'))||{}).path||'';
+  return entradaPath;
+}
+function mostrarPrevia(modo){
+  const fr=document.getElementById('preview'), wrap=document.getElementById('pagesFrameWrap');
+  if(modo==='pages'){ fr.style.display='none'; wrap.style.display='block'; document.getElementById('pagesFrame').src='https://korvil-app.github.io/korvil-app1/?v='+Date.now(); }
+  else { wrap.style.display='none'; if(!entradaPath) return alert('Gere o projeto primeiro (Corrigir).'); fr.style.display='block'; fr.src=blobMap[entradaPath]; }
+}
+
 async function corrigirEPreparar(){
   if(!arquivos.length) return alert('Anexe primeiro o ZIP.');
   corrigidos=[];
@@ -174,7 +227,7 @@ async function corrigirEPreparar(){
     else corrigidos.push({...a, text:corrigirTexto(a.text)});
   }
   render(corrigidos);
-  log('✅ Corrigido tudo: caminhos, links e nomes -> korvil-app/korvil-app1. Visual / CSS / funcionamento mantidos.');
+  await montarPreviaReal(); log('✅ Corrigido tudo: caminhos, links e nomes -> korvil-app/korvil-app1. Visual / CSS / funcionamento mantidos.');
   // Prévia real
   const index=corrigidos.find(a=>/(^|\/)index\.html$/.test(a.path))||corrigidos.find(a=>a.path.endsWith('.html'));
   if(index&&index.text){
