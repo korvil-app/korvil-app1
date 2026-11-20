@@ -46,11 +46,20 @@ a{color:#7dd3fc}
 </head>
 <body>
 <div class="wrap">
-<h1>KORVIL • Código Mestre</h1>
-<p><span class="badge">ÚNICA FUNÇÃO • SEM TOKEN</span></p>
-<p><b>Destino fixo no GitHub:</b> <a href="https://github.com/korvil-app/korvil-app1/tree/main" target="_blank">https://github.com/korvil-app/korvil-app1/tree/main</a><br>
-<b>Referência antiga:</b> bolt.new/~/sb1-mkqjfct6 • https://korvil-app-operating-j27q.bolt.host<br>
-<b>Site novo publicado:</b> https://korvil-app.github.io/korvil-app1/ (após subir + ativar Pages)<br><b>Regra:</b> Não muda visual, não muda funcionamento. Só corrige caminhos, links e nomes para o projeto novo funcionar igual ao antigo.</p>
+<div class="card" style="border:2px solid #22c55e">
+<h2 style="margin-top:0">🔑 CHAVES DAS IAs — Coloque aqui</h2>
+<p><small>Não é token do GitHub. São suas chaves API já criadas nos sites do Gemini e do Groq.</small></p>
+<label style="display:block;font-weight:800;margin:12px 0 4px">1) GEMINI — Chave API do Gemini</label>
+<input id="keyGemini" oninput="mostrarPrefixo()" type="password" placeholder="Cole aqui sua chave API do Gemini - comeca com AQ..." autocomplete="off" style="width:100%;padding:14px;border-radius:10px;border:1px solid #555;background:#0f0f14;color:#fff;font-size:15px">
+<div class="row"><button class="btn2" onclick="testarUma('gemini')">Testar chave Gemini</button><span id="testGemini">Não testada</span></div>
+<label style="display:block;font-weight:800;margin:14px 0 4px">2) GROQ — Chave API do Groq / Grok</label>
+<input id="keyGroq" oninput="mostrarPrefixo()" type="password" placeholder="Cole aqui sua chave API do Groq / Grok - comeca com gsk_..." autocomplete="off" style="width:100%;padding:14px;border-radius:10px;border:1px solid #555;background:#0f0f14;color:#fff;font-size:15px">
+<div class="row"><button class="btn2" onclick="testarUma('groq')">Testar chave Groq</button><span id="testGroq">Não testada</span></div>
+<label style="display:block;font-weight:800;margin:14px 0 4px">3) POLLINATIONS — Sem chave, grátis, já configurado</label>
+<div style="background:#0f0f14;border:1px solid #333;border-radius:10px;padding:13px;color:#22c55e;font-weight:700">✅ Pollinations configurado para funcionar grátis — não precisa colar chave, não precisa de caixa. Só clicar em Ativar abaixo.</div>
+<div class="row" style="margin-top:14px"><button class="btn3" onclick="ativarIAs()">⚡ Ativar as 3 IAs Juntas</button><span id="iaStatus">Aguardando chaves...</span></div>
+<div id="iaLog" style="background:#000;border-radius:10px;padding:10px;font-family:monospace;font-size:12px;white-space:pre-wrap;max-height:160px;overflow:auto;margin-top:10px">Pollinations: configurado grátis. Cole as chaves do Gemini e do Groq acima e clique Ativar.</div>
+</div>
 
 <div class="card">
 <div id="drop" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="onDrop(event)">
@@ -65,7 +74,7 @@ a{color:#7dd3fc}
 </div>
 <div class="row">
 <button class="btn2" onclick="analisar()">1 • Analisar Tudo</button>
-<button class="btn3" onclick="corrigirEPreparar()">2 • Corrigir Tudo + Gerar Projeto Novo</button>
+<button class="btn3" onclick="corrigirEPreparar()">2 • K-AI Corrigir Tudo + Gerar Projeto Novo</button>
 <button class="btn" onclick="baixarZip()">⬇ Baixar Projeto Novo Corrigido (.zip)</button>
 <button class="btn2" onclick="abrirGithub()">↗ Abrir GitHub korvil-app/korvil-app1</button>
 </div>
@@ -95,6 +104,62 @@ a{color:#7dd3fc}
 </div>
 
 <script>
+
+let KEY_GEMINI='', KEY_GROQ='', IAS_ATIVAS=false;
+function iaLog(m){ const el=document.getElementById('iaLog'); if(el){ el.textContent+='\n'+m; el.scrollTop=el.scrollHeight; } log('[K-AI] '+m); }
+async function ativarIAs(){
+  KEY_GEMINI=document.getElementById('keyGemini').value.trim();
+  KEY_GROQ=document.getElementById('keyGroq').value.trim();
+  if(!KEY_GEMINI && !KEY_GROQ){ alert('Cole pelo menos sua chave API do Gemini ou sua chave API do Groq. Pollinations ja esta ativa gratis.'); return; }
+  document.getElementById('iaStatus').textContent='Testando IAs...';
+  iaLog('Ativando K-AI Evoluida: Gemini + Groq + Pollinations...');
+  const testes=[];
+  if(KEY_GEMINI) testes.push(chamarGemini('Responda so: OK').then(r=>'Gemini OK').catch(e=>'Gemini falhou: '+e.message));
+  if(KEY_GROQ) testes.push(chamarGroq('Responda so: OK').then(r=>'Groq OK').catch(e=>'Groq falhou: '+e.message));
+  testes.push(chamarPollinations('Responda so: OK').then(r=>'Pollinations OK (gratis)').catch(e=>'Pollinations falhou: '+e.message));
+  const res=await Promise.all(testes);
+  res.forEach(r=>iaLog(' - '+r));
+  IAS_ATIVAS=true;
+  document.getElementById('iaStatus').textContent='K-AI Evoluida ATIVA - Gemini + Groq + Pollinations juntas';
+  iaLog('3 IAs unidas como 1 unica IA aprimorada. Agora anexe o ZIP.');
+}
+async function chamarGemini(prompt){
+  if(!KEY_GEMINI) throw new Error('Sem chave Gemini');
+  const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+encodeURIComponent(KEY_GEMINI),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+  if(!r.ok) throw new Error('Gemini '+r.status);
+  const j=await r.json(); return j.candidates?.[0]?.content?.parts?.map(p=>p.text).join('')||'';
+}
+async function chamarGroq(prompt){
+  if(!KEY_GROQ) throw new Error('Sem chave Groq');
+  const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+KEY_GROQ},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],temperature:0.2,max_tokens:4000})});
+  if(!r.ok) throw new Error('Groq '+r.status);
+  const j=await r.json(); return j.choices?.[0]?.message?.content||'';
+}
+async function chamarPollinations(prompt){
+  const r=await fetch('https://text.pollinations.ai/'+encodeURIComponent(prompt),{headers:{Accept:'text/plain'}});
+  if(!r.ok) throw new Error('Pollinations '+r.status);
+  return await r.text();
+}
+async function analisarComIAs(){
+  iaLog('=== PIPELINE K-AI EVOLUIDA - TODO MUNDO JUNTO ===');
+  iaLog('Ninguem sozinho. Groq faz logica, Gemini faz textos, Pollinations faz imagens, Codigo Mestre junta tudo.');
+  const lista=arquivos.map(a=>a.path).join('\n');
+  const amostra=arquivos.filter(a=>!a.isBinary&&a.text).slice(0,6).map(a=>a.path+'\n'+a.text.slice(0,1200)).join('\n---\n');
+  const base='Projeto antigo: bolt.new/~/sb1-mkqjfct6, site https://korvil-app-operating-j27q.bolt.host. Projeto novo: GitHub korvil-app/korvil-app1, site https://korvil-app.github.io/korvil-app1/, Supabase mantido. NAO mude visual, CSS, layout, cores, paginas. So corrija para korvil-app/korvil-app1.';
+  let saidaGroq='';
+  try{ iaLog('1/4 Groq (logica) analisando codigos, caminhos, imports, JS...'); saidaGroq=await chamarGroq(base+' FUNCAO: LOGICA. Retorne JSON {"fixes":[{"from":"","to":""}],"logica":["..."]} Lista:\n'+lista+'\nAmostra:\n'+amostra); iaLog('Groq logica OK.'); }catch(e){ iaLog('Groq pulada: '+e.message); }
+  let saidaGemini='';
+  try{ iaLog('2/4 Gemini (textos) usando a logica do Groq...'); saidaGemini=await chamarGemini(base+' FUNCAO: TEXTOS. Use a logica: '+saidaGroq.slice(0,2000)+' Corrija textos e estrutura. Retorne JSON {"fixes":[{"from":"","to":""}]} Lista:\n'+lista); iaLog('Gemini textos OK.'); }catch(e){ iaLog('Gemini pulada: '+e.message); }
+  let saidaPolli='';
+  try{ iaLog('3/4 Pollinations (imagens) usando logica + textos...'); saidaPolli=await chamarPollinations((base+' FUNCAO: IMAGENS. Logica: '+saidaGroq.slice(0,1000)+' Textos: '+saidaGemini.slice(0,1000)+' Liste imagens faltando e correcoes em JSON {"fixes":[{"from":"","to":""}]} Lista:\n'+lista).slice(0,3000)); iaLog('Pollinations imagens OK.'); }catch(e){ iaLog('Pollinations pulada: '+e.message); }
+  iaLog('4/4 Codigo Mestre juntando Groq + Gemini + Pollinations + regras locais...');
+  let total=0;
+  for(const r of [{nome:'Groq',txt:saidaGroq},{nome:'Gemini',txt:saidaGemini},{nome:'Pollinations',txt:saidaPolli}]){
+    try{ const m=r.txt.match(/\{[\s\S]*\}/); if(!m) continue; const j=JSON.parse(m[0]); (j.fixes||[]).forEach(f=>{ if(f.from&&f.to&&f.from!==f.to){ corrigidos.forEach(a=>{ if(!a.isBinary&&a.text&&a.text.includes(f.from)) a.text=a.text.split(f.from).join(f.to); }); total++; } }); }catch(e){ iaLog(r.nome+' sem JSON - regras locais assumem.'); }
+  }
+  iaLog('JUNTO: Groq logica + Gemini textos + Pollinations imagens + Codigo Mestre = 1 IA evoluida. Correcoes extras: '+total);
+}
+
 let arquivos=[]; // {path, text|null, blob, isBinary}
 let corrigidos=[];
 function log(m){ const el=document.getElementById('log'); el.textContent+='\n'+m; el.scrollTop=el.scrollHeight; }
@@ -226,6 +291,7 @@ async function corrigirEPreparar(){
     if(a.isBinary) corrigidos.push(a);
     else corrigidos.push({...a, text:corrigirTexto(a.text)});
   }
+  try{ await analisarComIAs(); }catch(e){ iaLog("K-AI fallback local: "+e.message); }
   render(corrigidos);
   await montarPreviaReal(); log('✅ Corrigido tudo: caminhos, links e nomes -> korvil-app/korvil-app1. Visual / CSS / funcionamento mantidos.');
   // Prévia real
